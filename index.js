@@ -54,6 +54,85 @@
 // })
 
 
+
+
+
+// import express from 'express'
+// import authRoutes from './routes/authRoutes.js'
+// import productRoutes from './routes/productRoutes.js'
+// import categoryRoutes from './routes/categoryRoutes.js'
+// import { client } from './dbConfig.js';
+// import cookieParser  from 'cookie-parser'
+// import dotenv from 'dotenv'
+// import jwt from 'jsonwebtoken'
+// import cors from 'cors'
+
+// dotenv.config();
+// client.connect();
+// console.log("You successfully connected to MongoDB!");
+
+// const app = express()
+
+// // CORS FIX - Array use karo, || nahi
+// app.use(cors({
+//   origin: [
+//     'https://olx-admin-panel-frontend.vercel.app',
+//     'http://localhost:5173'
+//   ], 
+//   credentials: true,
+//   exposedHeaders: ['set-cookie']
+// }))
+
+// const port = process.env.PORT || 3002
+// app.use(express.json());
+// app.use(cookieParser())
+
+// // Auth routes (without token check)
+// app.use(authRoutes) 
+
+// // Middleware FIX - Only signIn/signUp skip karo
+// const authenticateToken = (req, res, next) => {
+//   try{
+//     // ONLY signIn aur signUp ko skip karo, auth/me ko nahi
+//     if (req.path === '/signIn' || req.path === '/signUp') {
+//       return next();
+//     }
+    
+//     // Auth/me ko bhi protect karo
+//     const token = req.cookies?.token;
+    
+//     if (!token) {
+//       return res.status(401).json({
+//         status: 0,
+//         message: "No token provided"
+//       });
+//     }
+    
+//     let decoded = jwt.verify(token, process.env.SECRET);
+//     req.user = decoded; // User info store karo
+//     next();
+//   } catch(error){
+//     return res.status(401).json({
+//       status: 0,
+//       message: "Invalid Token"
+//     });
+//   }
+// }
+
+// app.use(authenticateToken)
+
+// // Protected routes (require token)
+// app.use(productRoutes)
+// app.use(categoryRoutes) 
+
+// app.listen(port, () => {
+//   console.log(`Example app listening on port ${ port }`)
+// })
+
+
+
+
+
 import express from 'express'
 import authRoutes from './routes/authRoutes.js'
 import productRoutes from './routes/productRoutes.js'
@@ -70,32 +149,25 @@ console.log("You successfully connected to MongoDB!");
 
 const app = express()
 
-// CORS FIX - Array use karo, || nahi
+// CORS
 app.use(cors({
   origin: [
     'https://olx-admin-panel-frontend.vercel.app',
     'http://localhost:5173'
   ], 
-  credentials: true,
-  exposedHeaders: ['set-cookie']
+  credentials: true
 }))
 
 const port = process.env.PORT || 3002
 app.use(express.json());
 app.use(cookieParser())
 
-// Auth routes (without token check)
+// Public routes (without token check)
 app.use(authRoutes) 
 
-// Middleware FIX - Only signIn/signUp skip karo
+// Middleware - Only for specific protected routes
 const authenticateToken = (req, res, next) => {
   try{
-    // ONLY signIn aur signUp ko skip karo, auth/me ko nahi
-    if (req.path === '/signIn' || req.path === '/signUp') {
-      return next();
-    }
-    
-    // Auth/me ko bhi protect karo
     const token = req.cookies?.token;
     
     if (!token) {
@@ -106,7 +178,7 @@ const authenticateToken = (req, res, next) => {
     }
     
     let decoded = jwt.verify(token, process.env.SECRET);
-    req.user = decoded; // User info store karo
+    req.user = decoded;
     next();
   } catch(error){
     return res.status(401).json({
@@ -116,15 +188,13 @@ const authenticateToken = (req, res, next) => {
   }
 }
 
-app.use(authenticateToken)
+// Apply middleware ONLY to product and category routes
+app.use('/products', authenticateToken, productRoutes);
+app.use('/categories', authenticateToken, categoryRoutes);
 
-// Protected routes (require token)
-app.use(productRoutes)
-app.use(categoryRoutes) 
+// Ya individual routes define karo
+// app.use(authenticateToken); // COMMENT THIS LINE
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${ port }`)
 })
-
-
-
