@@ -61,6 +61,65 @@ router.post('/register', async (req, res) => {
     }
 })
 
+// router.post('/signIn', async (req, res) => {
+//     try {
+//         if (!req.body.email || !req.body.password) {
+//             return res.status(400).send({
+//                 status: 0,
+//                 message: "Email or Password is required"
+//             })
+//         }
+//         let email = req.body.email.toLowerCase()
+//         const emailFormat = /^[a-zA-Z0-9_.+]+(?<!^[0-9]*)@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+//         if (!email.match(emailFormat)) {
+//             return res.send({
+//                 status: 0,
+//                 message: "Email is Invalid"
+//             })
+//         }
+//         const user = await Users.findOne({ email })
+//         if (!user) {
+//             return res.status(404).send({
+//                 status: 0,
+//                 message: "Email is not registered!"
+//             })
+//         }
+//         const matchPassword = await bcrypt.compareSync(req.body.password, user.password)
+//         if (!matchPassword) {
+//             return res.status(400).send({
+//                 status: 0,
+//                 message: "Email or Password is incorrect"
+//             })
+//         }
+//         const token = await jwt.sign({
+//             _id: user._id,
+//             email,
+//             firstName: user.firstName,
+//         }, process.env.SECRET, { expiresIn: '5h' })
+
+//         res.cookie("token", token, {
+//             httpOnly: true,
+//             secure: true
+//         })
+
+//         return res.send({
+//             status: 1,
+//             message: "Login Successful",
+//             data: {
+//                 firstName: user.firstName,
+//                 email: user.email,
+//                 token:token
+//             }
+//         })
+//     } catch (error) {
+//         return res.send({
+//             status: 0,
+//             error: error,
+//             message: "Something Went Wrong"
+//         })
+//     }
+// })
+
 router.post('/signIn', async (req, res) => {
     try {
         if (!req.body.email || !req.body.password) {
@@ -97,10 +156,16 @@ router.post('/signIn', async (req, res) => {
             firstName: user.firstName,
         }, process.env.SECRET, { expiresIn: '5h' })
 
+        // COOKIE SETTINGS FIX - sameSite add karo
         res.cookie("token", token, {
             httpOnly: true,
-            secure: true
+            secure: true,
+            sameSite: 'none', // YEH ADD KARO - Cross-site ke liye important
+            maxAge: 5 * 60 * 60 * 1000, // 5 hours in milliseconds
+            path: '/'
         })
+
+        console.log("Cookie set with token:", token); // Debug
 
         return res.send({
             status: 1,
@@ -108,7 +173,7 @@ router.post('/signIn', async (req, res) => {
             data: {
                 firstName: user.firstName,
                 email: user.email,
-                token:token
+                token: token
             }
         })
     } catch (error) {

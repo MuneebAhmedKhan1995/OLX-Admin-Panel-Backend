@@ -76,7 +76,8 @@ app.use(cors({
     'https://olx-admin-panel-frontend.vercel.app',
     'http://localhost:5173'
   ], 
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['set-cookie']
 }))
 
 const port = process.env.PORT || 3002
