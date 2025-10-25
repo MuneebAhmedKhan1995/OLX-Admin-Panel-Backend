@@ -10,21 +10,114 @@ import cloudinary from '../midleware/cloudinary.js'
 
 
 // ✅ Existing route ko update karo FormData handle karne ke liye
+// router.post('/user/product', upload.array('image', 5), async (req, res) => {
+//   try {
+//     let decoded = jwt.verify(req.cookies.token, process.env.SECRET);
+    
+//     console.log("Request Body:", req.body);
+//     console.log("Uploaded Files:", req.files);
+
+//     // ✅ Cloudinary upload agar files hain
+//     let imageUrls = [];
+//     if (req.files && req.files.length > 0) {
+//       for (let file of req.files) {
+//         const result = await cloudinary.uploader.upload(file.path, {
+//           folder: "products"
+//         });
+//         imageUrls.push(result.secure_url);
+//       }
+//     }
+
+//     const product = {
+//       title: req.body.title,
+//       description: req.body.description,
+//       price: parseFloat(req.body.price),
+//       category: req.body.category,
+//       quantity: parseInt(req.body.quantity) || 0,
+//       postedBy: decoded._id,
+//       images: imageUrls.length > 0 ? imageUrls : [req.body.image], // ✅ Multiple images support
+//       status: true,
+//       deletedAt: null,
+//       isDeleted: false,
+//       productType: req.body.productType,
+//       createdAt: Date.now(),
+//       updatedAt: Date.now(),
+//     }
+
+//     console.log("Product to insert:", product);
+
+//     const response = await Products.insertOne(product);
+//     if (response.acknowledged) {
+//       return res.status(200).json({
+//         status: 1,
+//         message: "Product added successfully",
+//         productId: response.insertedId
+//       });
+//     } else {
+//       return res.status(500).json({
+//         status: 0,
+//         message: "Something went wrong"
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Product creation error:", error);
+//     return res.status(500).json({
+//       status: 0,
+//       message: "Internal server error"
+//     });
+//   }
+// });
+
+
+
 router.post('/user/product', upload.array('image', 5), async (req, res) => {
   try {
-    let decoded = jwt.verify(req.cookies.token, process.env.SECRET);
+    console.log("✅ Product creation started...");
     
-    console.log("Request Body:", req.body);
-    console.log("Uploaded Files:", req.files);
+    // ✅ Token verification with error handling
+    const token = req.cookies?.token;
+    if (!token) {
+      return res.status(401).json({
+        status: 0,
+        message: "No token provided"
+      });
+    }
 
-    // ✅ Cloudinary upload agar files hain
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.SECRET);
+    } catch (jwtError) {
+      return res.status(401).json({
+        status: 0,
+        message: "Invalid token"
+      });
+    }
+    
+    console.log("✅ Request Body:", req.body);
+    console.log("✅ Uploaded Files count:", req.files ? req.files.length : 0);
+
+    // ✅ Cloudinary upload with BUFFER (not file.path)
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
+      console.log("📁 Uploading files to Cloudinary using buffer...");
+      
       for (let file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: "products"
-        });
-        imageUrls.push(result.secure_url);
+        try {
+          // ✅ USE BUFFER instead of file.path
+          // Convert buffer to base64 for Cloudinary
+          const result = await cloudinary.uploader.upload(
+            `data:${file.mimetype};base64,${file.buffer.toString('base64')}`, 
+            {
+              folder: "products",
+              resource_type: "auto"
+            }
+          );
+          imageUrls.push(result.secure_url);
+          console.log("✅ File uploaded to Cloudinary:", result.secure_url);
+        } catch (uploadError) {
+          console.error("❌ Cloudinary upload error:", uploadError);
+          // Continue with other files
+        }
       }
     }
 
@@ -35,16 +128,16 @@ router.post('/user/product', upload.array('image', 5), async (req, res) => {
       category: req.body.category,
       quantity: parseInt(req.body.quantity) || 0,
       postedBy: decoded._id,
-      images: imageUrls.length > 0 ? imageUrls : [req.body.image], // ✅ Multiple images support
+      images: imageUrls, // Only use Cloudinary URLs, not req.body.image
       status: true,
       deletedAt: null,
       isDeleted: false,
       productType: req.body.productType,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
 
-    console.log("Product to insert:", product);
+    console.log("✅ Product to insert:", product);
 
     const response = await Products.insertOne(product);
     if (response.acknowledged) {
@@ -60,13 +153,15 @@ router.post('/user/product', upload.array('image', 5), async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Product creation error:", error);
+    console.error("❌ Product creation error:", error);
+    console.error("❌ Error stack:", error.stack);
     return res.status(500).json({
       status: 0,
-      message: "Internal server error"
+      message: "Internal server error: " + error.message
     });
   }
 });
+
 router.get('/user/products', async (req, res) => {
   const allProducts = Products.find({ status: true, isDeleted: false, deletedAt: null })
   const response = await allProducts.toArray()
