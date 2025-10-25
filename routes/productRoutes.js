@@ -8,34 +8,6 @@ import jwt from 'jsonwebtoken'
 import { upload } from '../midleware/Multer.js';
 import cloudinary from '../midleware/cloudinary.js'
 
-// router.post('/user/product', async (req, res) => {
-//   let decoded = jwt.verify(req.cookies.token, process.env.SECRET);
-
-//   console.log(req.body)
-//   const product = {
-//     title: req.body.title,
-//     description: req.body.description,
-//     price: req.body.price,
-//     category: req.body.category,
-//     quantity: req.body.quantity || 0,
-//     postedBy: decoded._id,
-//     image: req.body.image,
-//     status: true,
-//     deletedAt: null,
-//     isDeleted: false,
-//     productType: req.body.productType,
-//     createdAt: Date.now(),
-//     updatedAt: Date.now(),
-//   }
-
-//   const response = await Products.insertOne(product)
-//   if (response) {
-//     return res.send("product added successfully")
-//   }
-//   else {
-//     return res.send("something went wrong")
-//   }
-// })
 
 // ✅ Existing route ko update karo FormData handle karne ke liye
 router.post('/user/product', upload.array('image', 5), async (req, res) => {
