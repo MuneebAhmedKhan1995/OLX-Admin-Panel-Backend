@@ -43,7 +43,7 @@ const authenticateToken = (req, res, next) => {
   }
 }
 
-// app.use(authenticateToken)
+app.use(authenticateToken)
 
 // Protected routes (require token)
 app.use(productRoutes)
